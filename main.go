@@ -30,7 +30,7 @@ type Admin struct {
 
 type Exam struct {
 	EXAM_NAME               string
-	EXAM_DSEC               string
+	EXAM_DESC               string
 	EXAM_ID                 string
 	EXAM_STARTTIME          int64
 	EXAM_QUESTION_BANK      []int
@@ -80,7 +80,7 @@ func main() {
 	r.HandleFunc("/ping", PingHandler).Methods("GET")
 	r.HandleFunc("/login", LoginHandler).Methods("POST")
 	r.HandleFunc("/register", RegisterHandler).Methods("POST")
-	r.HandleFunc("/getExams", GetExamsHandler).Methods("GET")
+	r.HandleFunc("/getExams", GetExamsHandler).Methods("POST")
 	r.HandleFunc("/addExam", AddNewExamHandler).Methods("POST")
 
 	http.Handle("/", r)
@@ -204,7 +204,7 @@ func AddNewExamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if insertResult != nil {
 		fmt.Print("New exam added: ", name)
-		json.NewEncoder(w).Encode(map[string]string{"exam": name})
+		json.NewEncoder(w).Encode(map[string]string{"status": name + " اضافه شد."})
 	} else {
 		log.Println(err)
 	}
