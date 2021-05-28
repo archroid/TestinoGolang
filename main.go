@@ -20,6 +20,8 @@ import (
 var adminsCollection *mongo.Collection
 var studentsCollection *mongo.Collection
 var examsCollection *mongo.Collection
+var questionBankCollection *mongo.Collection
+var questionsCollection *mongo.Collection
 
 type Admin struct {
 	ADMIN_USERNAME string
@@ -40,14 +42,20 @@ type Exam struct {
 }
 
 type Question struct {
-	QUESTION_ID     string
-	QUESTION_TITLE  string
-	QUESTION_A      string
-	QUESTION_B      string
-	QUESTION_C      string
-	QUESTION_D      string
-	QUESTION_ANSWER string
-	QUESTION_SCORE  int
+	QUESTION_ID      string
+	QUESTION_TITLE   string
+	QUESTION_A       string
+	QUESTION_B       string
+	QUESTION_C       string
+	QUESTION_D       string
+	QUESTION_ANSWER  string
+	QUESTION_BANK_ID string
+}
+
+type QuestionBank struct {
+	QUESTION_BANK_ID      string
+	QUESTION_BANK_CREATOR string
+	QUESTION_BANK_NAME    string
 }
 
 type Student struct {
@@ -74,6 +82,8 @@ func main() {
 	adminsCollection = client.Database("testino").Collection("admins")
 	studentsCollection = client.Database("testino").Collection("students")
 	examsCollection = client.Database("testino").Collection("exams")
+	questionBankCollection = client.Database("testino").Collection("question_bank")
+	questionsCollection = client.Database("testino").Collection("questions")
 
 	// Handlers
 	r := mux.NewRouter()
@@ -82,6 +92,8 @@ func main() {
 	r.HandleFunc("/register", RegisterHandler).Methods("POST")
 	r.HandleFunc("/getExams", GetExamsHandler).Methods("POST")
 	r.HandleFunc("/addExam", AddNewExamHandler).Methods("POST")
+	r.HandleFunc("/addQuestionBank", AddQuestionBankHandler).Methods("POST")
+	r.HandleFunc("/addQuestion", AddQuestionHandler).Methods("POST")
 
 	http.Handle("/", r)
 	fmt.Println("listening on port 5000")
@@ -111,12 +123,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 		err := adminsCollection.FindOne(context.TODO(), filter).Decode(&result)
 		if err != nil {
-			fmt.Print("Invalid login data: ", username)
+			fmt.Print("Invalid login data: ", username+"\n")
 			http.Error(w, "نام کاربری یا رمز عبور اشتباه است.", http.StatusBadRequest)
 
 		} else {
 			json.NewEncoder(w).Encode(map[string]string{"token": result.ADMIN_TOKEN})
-			fmt.Print("logged in: ", username)
+			fmt.Print("logged in: ", username+"\n")
 		}
 
 	} else {
@@ -146,7 +158,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		err := adminsCollection.FindOne(context.TODO(), filter).Decode(&result)
 		if err == nil {
 			http.Error(w, "این نام کاربری قبل استفاده شده است.", http.StatusBadRequest)
-			fmt.Print("used username: " + username)
+			fmt.Print("used username: " + username + "\n")
 
 		} else {
 			//REGISTER
@@ -242,4 +254,58 @@ func GetExamsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(results)
 	fmt.Print("Returned exams of: ", username)
 
+}
+
+func AddQuestionBankHandler(w http.ResponseWriter, r *http.Request) {
+	dt := time.Now().Format("01-02-2006 15:04:05")
+	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
+
+	username := r.FormValue("creator")
+	name := r.FormValue("name")
+
+	//Generate exam ID
+	id := shortuuid.New()
+
+	insertQuestionBank := QuestionBank{id, username, name}
+
+	insertResult, err := questionBankCollection.InsertOne(context.TODO(), insertQuestionBank)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	if insertResult != nil {
+		fmt.Print("New questionBank added: ", name+"\n")
+		json.NewEncoder(w).Encode(map[string]string{"id": id})
+	} else {
+		log.Println(err)
+	}
+
+}
+
+func AddQuestionHandler(w http.ResponseWriter, r *http.Request) {
+	dt := time.Now().Format("01-02-2006 15:04:05")
+	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
+
+	title := r.FormValue("title")
+	A := r.FormValue("A")
+	B := r.FormValue("B")
+	C := r.FormValue("C")
+	D := r.FormValue("D")
+	answer := r.FormValue("answer")
+	bankId := r.FormValue("bankId")
+	id := shortuuid.New()
+
+	insertQuestion := Question{id, title, A, B, C, D, answer, bankId}
+
+	insertResult, err := questionsCollection.InsertOne(context.TODO(), insertQuestion)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	if insertResult != nil {
+		fmt.Print("New question added: ", id+"\n")
+		json.NewEncoder(w).Encode(map[string]string{"id": id})
+	} else {
+		log.Println(err)
+	}
 }
