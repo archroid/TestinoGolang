@@ -24,21 +24,23 @@ var questionBankCollection *mongo.Collection
 var questionsCollection *mongo.Collection
 
 type Admin struct {
-	ADMIN_USERNAME string
-	ADMIN_PASSWORD string
-	ADMIN_EMAIL    string
-	ADMIN_TOKEN    string
+	ADMIN_USERNAME    string
+	ADMIN_NAME        string
+	ADMIN_PROFILE_URL string
+	ADMIN_PASSWORD    string
+	ADMIN_EMAIL       string
+	ADMIN_TOKEN       string
 }
 
 type Exam struct {
-	EXAM_NAME               string
-	EXAM_DESC               string
-	EXAM_ID                 string
-	EXAM_STARTTIME          int64
-	EXAM_QUESTION_BANK      []int
-	EXAM_CREATOR            string
-	EXAM_DURATION           int64
-	EXAM_CREATION_TIMESTAMP int64
+	EXAM_NAME             string
+	EXAM_DESC             string
+	EXAM_ID               string
+	EXAM_STARTTIME        int64
+	EXAM_QUESTION_BANK_ID string
+	EXAM_CREATOR          string
+	EXAM_DURATION         int64
+	EXAM_ICON_URL         string
 }
 
 type Question struct {
@@ -59,10 +61,11 @@ type QuestionBank struct {
 }
 
 type Student struct {
-	STUDENT_USERNAME string
-	STUDENT_PASSWORD string
-	STUDENT_NAME     string
-	STUDENT_CLASSES  []string
+	STUDENT_USERNAME   string
+	STUDENT_NAME       string
+	STUDENT_PROFILE_ID string
+	STUDENT_PASSWORD   string
+	STUDENT_CLASSES    []string
 }
 
 func main() {
@@ -179,7 +182,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 			signedToken, _ := token.SignedString([]byte("testino"))
 
-			insertUser := Admin{username, password, email, signedToken}
+			insertUser := Admin{username, username, "default", password, email, signedToken}
 
 			insertResult, err := adminsCollection.InsertOne(context.TODO(), insertUser)
 			if err != nil {
@@ -202,12 +205,12 @@ func AddNewExamHandler(w http.ResponseWriter, r *http.Request) {
 	startTime, _ := strconv.ParseInt(r.FormValue("startTime"), 10, 0)
 	duration, _ := strconv.ParseInt(r.FormValue("duration"), 10, 0)
 	username := r.FormValue("creator")
-	timestampOfCreation := time.Now().Unix()
+	questionBankId := r.FormValue("questionBankId")
 
 	//Generate exam ID
 	id := shortuuid.New()
 
-	insertExam := Exam{name, desc, id, startTime, nil, username, duration, timestampOfCreation}
+	insertExam := Exam{name, desc, id, startTime, questionBankId, username, duration, "default"}
 
 	insertResult, err := examsCollection.InsertOne(context.TODO(), insertExam)
 	if err != nil {
