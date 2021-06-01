@@ -96,6 +96,7 @@ func main() {
 
 	r.HandleFunc("/addQuestionBank", AddQuestionBankHandler).Methods("POST")
 	r.HandleFunc("/addQuestion", AddQuestionHandler).Methods("POST")
+	r.HandleFunc("/getQuestions", GetQuestionsHandler).Methods("POST")
 
 	r.HandleFunc("/getExam", GetExamHandler).Methods("POST")
 	r.HandleFunc("/deleteExam", DeleteExamHandler).Methods("POST")
@@ -354,5 +355,40 @@ func DeleteExamHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Deleted %v documents in the trainers collection\n", deleteResult.DeletedCount)
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+
+}
+
+func GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
+	dt := time.Now().Format("01-02-2006 15:04:05")
+	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
+
+	id := r.FormValue("id")
+
+	filter := bson.D{{Key: "question_bank_id", Value: id}}
+
+	findOptions := options.Find()
+	findOptions.SetLimit(0)
+	cur, err := questionsCollection.Find(context.TODO(), filter, findOptions)
+	if err != nil {
+		log.Println(err)
+	}
+
+	var results []*Question
+
+	for cur.Next(context.TODO()) {
+		var elem Question
+		err := cur.Decode(&elem)
+		if err != nil {
+			log.Fatal(err)
+		}
+		results = append(results, &elem)
+	}
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
+	cur.Close(context.TODO())
+
+	json.NewEncoder(w).Encode(results)
+	fmt.Print("Returned Questions of: ", id)
 
 }
