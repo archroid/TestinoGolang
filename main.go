@@ -97,6 +97,7 @@ func main() {
 	r.HandleFunc("/addExam", AddNewExamHandler).Methods("POST")
 	r.HandleFunc("/addQuestionBank", AddQuestionBankHandler).Methods("POST")
 	r.HandleFunc("/addQuestion", AddQuestionHandler).Methods("POST")
+	r.HandleFunc("/getExam", GetExamHandler).Methods("POST")
 
 	http.Handle("/", r)
 	fmt.Println("listening on port 5000")
@@ -311,4 +312,25 @@ func AddQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Println(err)
 	}
+}
+
+func GetExamHandler(w http.ResponseWriter, r *http.Request) {
+	dt := time.Now().Format("01-02-2006 15:04:05")
+	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
+
+	id := r.FormValue("id")
+
+	filter := bson.D{{Key: "exam_id", Value: id}}
+	var result Exam
+
+	err := examsCollection.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+		fmt.Print("No exam found: ", id+"\n")
+		http.Error(w, "صفحه مورد نظر یافت نشد", http.StatusBadRequest)
+
+	} else {
+		json.NewEncoder(w).Encode(result)
+		fmt.Print("Found exam: ", result.EXAM_NAME+"\n")
+	}
+
 }
