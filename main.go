@@ -93,11 +93,14 @@ func main() {
 	r.HandleFunc("/ping", PingHandler).Methods("GET")
 	r.HandleFunc("/login", LoginHandler).Methods("POST")
 	r.HandleFunc("/register", RegisterHandler).Methods("POST")
-	r.HandleFunc("/getExams", GetExamsHandler).Methods("POST")
-	r.HandleFunc("/addExam", AddNewExamHandler).Methods("POST")
+
 	r.HandleFunc("/addQuestionBank", AddQuestionBankHandler).Methods("POST")
 	r.HandleFunc("/addQuestion", AddQuestionHandler).Methods("POST")
+
 	r.HandleFunc("/getExam", GetExamHandler).Methods("POST")
+	r.HandleFunc("/deleteExam", DeleteExamHandler).Methods("POST")
+	r.HandleFunc("/getExams", GetExamsHandler).Methods("POST")
+	r.HandleFunc("/addExam", AddNewExamHandler).Methods("POST")
 
 	http.Handle("/", r)
 	fmt.Println("listening on port 5000")
@@ -332,5 +335,24 @@ func GetExamHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(result)
 		fmt.Print("Found exam: ", result.EXAM_NAME+"\n")
 	}
+
+}
+
+func DeleteExamHandler(w http.ResponseWriter, r *http.Request) {
+	dt := time.Now().Format("01-02-2006 15:04:05")
+	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
+
+	id := r.FormValue("id")
+	filter := bson.D{{Key: "exam_id", Value: id}}
+
+	deleteResult, err := examsCollection.DeleteMany(context.TODO(), filter)
+	if err != nil {
+		log.Fatal(err)
+		fmt.Print("No exam found: ", id+"\n")
+		http.Error(w, "not found", http.StatusBadRequest)
+	}
+
+	fmt.Printf("Deleted %v documents in the trainers collection\n", deleteResult.DeletedCount)
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 
 }
