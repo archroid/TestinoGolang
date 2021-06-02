@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -96,14 +98,15 @@ func main() {
 	r.HandleFunc("/getQuestionBank", getQuestionBankHandler).Methods("POST")
 	r.HandleFunc("/getQuestionBanks", getQuestionBanksHandler).Methods("POST")
 	r.HandleFunc("/addQuestionBank", AddQuestionBankHandler).Methods("POST")
-
-	r.HandleFunc("/addQuestion", AddQuestionHandler).Methods("POST")
+	go r.HandleFunc("/addQuestion", AddQuestionHandler).Methods("POST")
 	r.HandleFunc("/getQuestions", GetQuestionsHandler).Methods("POST")
 
 	r.HandleFunc("/getExam", GetExamHandler).Methods("POST")
 	r.HandleFunc("/getExams", GetExamsHandler).Methods("POST")
 	r.HandleFunc("/addExam", AddNewExamHandler).Methods("POST")
 	r.HandleFunc("/deleteExam", DeleteExamHandler).Methods("POST")
+
+	r.HandleFunc("/uploadImage", UploadImageHandler).Methods("POST")
 
 	http.Handle("/", r)
 	fmt.Println("listening on port 5000")
@@ -450,4 +453,30 @@ func getQuestionBankHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Print("Found questionBank: ", result.QUESTION_BANK_NAME+"\n")
 		}
 	}
+}
+
+func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
+	dt := time.Now().Format("01-02-2006 15:04:05")
+	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
+
+	file, handler, err := r.FormFile("file")
+	// saveName := r.FormValue("saveName")
+	fileType := r.FormValue("fileType")
+
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	f, err := os.OpenFile(fileType, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	_, _ = io.Copy(f, file)
+
+	fmt.Print(handler.Filename)
+	// fmt.Print(fileType)
+
+	json.NewEncoder(w).Encode(map[string]string{"status": "عکس مورد نظر با موفقیت آپلود شد!"})
 }
