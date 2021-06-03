@@ -63,10 +63,11 @@ type QuestionBank struct {
 }
 
 type Student struct {
-	STUDENT_USERNAME   string
-	STUDENT_NAME       string
-	STUDENT_PROFILE_ID string
-	STUDENT_PASSWORD   string
+	STUDENT_USERNAME    string
+	STUDENT_NAME        string
+	STUDENT_PROFILE_URL string
+	STUDENT_PASSWORD    string
+	STUDENT_TOKEN       string
 }
 
 func main() {
@@ -107,6 +108,9 @@ func main() {
 	r.HandleFunc("/deleteExam", DeleteExamHandler).Methods("POST")
 
 	r.HandleFunc("/uploadImage", UploadImageHandler).Methods("POST")
+
+	staticDir := "/images/"
+	http.Handle(staticDir, http.StripPrefix(staticDir, http.FileServer(http.Dir("."+staticDir))))
 
 	http.Handle("/", r)
 	fmt.Println("listening on port 5000")
@@ -460,23 +464,72 @@ func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
 
 	file, handler, err := r.FormFile("file")
-	// saveName := r.FormValue("saveName")
-	fileType := r.FormValue("fileType")
+
+	fileName := r.FormValue("fileName")
+	filePath := r.FormValue("filePath")
 
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
 
-	f, err := os.OpenFile(fileType, os.O_WRONLY|os.O_CREATE, 0666)
+	os.MkdirAll("images/studentProfiles", os.ModePerm)
+	os.MkdirAll("images/adminProfiles", os.ModePerm)
+	os.MkdirAll("images/examIcons", os.ModePerm)
+
+	f, err := os.OpenFile(filePath+"/"+fileName, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
 	_, _ = io.Copy(f, file)
 
-	fmt.Print(handler.Filename)
-	// fmt.Print(fileType)
+	switch filePath {
+	case "images/studentProfiles":
+		filter := bson.D{{"student_username", fileName}}
+
+		update := bson.D{
+			{"$set", bson.D{
+				{"student_profile_url", "http://192.168.1.108:5000/" + filePath + "/" + fileName},
+			}},
+		}
+
+		_, err := studentsCollection.UpdateOne(context.TODO(), filter, update)
+		if err != nil {
+			log.Print(err)
+		}
+		break
+	case "images/adminProfiles":
+		filter := bson.D{{"admin_username", fileName}}
+
+		update := bson.D{
+			{"$set", bson.D{
+				{"admin_profile_url", "http://192.168.1.108:5000/" + filePath + "/" + fileName},
+			}},
+		}
+
+		_, err := adminsCollection.UpdateOne(context.TODO(), filter, update)
+		if err != nil {
+			log.Print(err)
+		}
+		break
+	case "images/examIcons":
+		filter := bson.D{{"exam_id", fileName}}
+
+		update := bson.D{
+			{"$set", bson.D{
+				{"exam_icon_url", "http://192.168.1.108:5000/" + filePath + "/" + fileName},
+			}},
+		}
+
+		_, err := examsCollection.UpdateOne(context.TODO(), filter, update)
+		if err != nil {
+			log.Print(err)
+		}
+		break
+	}
+
+	fmt.Print(filePath + handler.Filename)
 
 	json.NewEncoder(w).Encode(map[string]string{"status": "عکس مورد نظر با موفقیت آپلود شد!"})
 }
