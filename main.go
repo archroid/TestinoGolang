@@ -233,7 +233,7 @@ func AddNewExamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if insertResult != nil {
 		fmt.Print("New exam added: ", name)
-		json.NewEncoder(w).Encode(map[string]string{"status": name + " اضافه شد."})
+		json.NewEncoder(w).Encode(map[string]string{"id": id})
 	} else {
 		log.Println(err)
 	}
@@ -531,5 +531,5 @@ func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Print(filePath + handler.Filename)
 
-	json.NewEncoder(w).Encode(map[string]string{"status": "عکس مورد نظر با موفقیت آپلود شد!"})
+	json.NewEncoder(w).Encode(map[string]string{"status": "http://192.168.1.108:5000/" + filePath + "/" + fileName})
 }
