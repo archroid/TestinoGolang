@@ -96,6 +96,8 @@ func main() {
 	r.HandleFunc("/login", LoginHandler).Methods("POST")
 	r.HandleFunc("/register", RegisterHandler).Methods("POST")
 
+	r.HandleFunc("/getUser", GetUserHandler).Methods("POST")
+
 	r.HandleFunc("/getQuestionBank", getQuestionBankHandler).Methods("POST")
 	r.HandleFunc("/getQuestionBanks", getQuestionBanksHandler).Methods("POST")
 	r.HandleFunc("/addQuestionBank", AddQuestionBankHandler).Methods("POST")
@@ -532,4 +534,32 @@ func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Print(filePath + handler.Filename)
 
 	json.NewEncoder(w).Encode(map[string]string{"status": "http://192.168.1.108:5000/" + filePath + "/" + fileName})
+}
+
+func GetUserHandler(w http.ResponseWriter, r *http.Request) {
+
+	dt := time.Now().Format("01-02-2006 15:04:05")
+	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
+
+	username := r.FormValue("username")
+	userType := r.FormValue("userType")
+
+	switch userType {
+	case "admin":
+
+		filter := bson.D{{Key: "admin_username", Value: username}}
+		var result Admin
+
+		err := adminsCollection.FindOne(context.TODO(), filter).Decode(&result)
+		if err != nil {
+			fmt.Print("Return Error: ", username+"\n")
+			http.Error(w, "Error", http.StatusBadRequest)
+
+		} else {
+			json.NewEncoder(w).Encode(result)
+			fmt.Print("Return user: ", username+"\n")
+		}
+		break
+	}
+
 }
