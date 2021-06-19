@@ -101,6 +101,8 @@ func main() {
 	r.HandleFunc("/getQuestionBank", getQuestionBankHandler).Methods("POST")
 	r.HandleFunc("/getQuestionBanks", getQuestionBanksHandler).Methods("POST")
 	r.HandleFunc("/addQuestionBank", AddQuestionBankHandler).Methods("POST")
+	r.HandleFunc("/deleteQuestionBank", DeleteQuestionBankHandler).Methods("POST")
+
 	go r.HandleFunc("/addQuestion", AddQuestionHandler).Methods("POST")
 	r.HandleFunc("/getQuestions", GetQuestionsHandler).Methods("POST")
 
@@ -357,14 +359,13 @@ func DeleteExamHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.FormValue("id")
 	filter := bson.D{{Key: "exam_id", Value: id}}
 
-	deleteResult, err := examsCollection.DeleteMany(context.TODO(), filter)
+	_, err := examsCollection.DeleteMany(context.TODO(), filter)
 	if err != nil {
 		log.Fatal(err)
 		fmt.Print("No exam found: ", id+"\n")
 		http.Error(w, "not found", http.StatusBadRequest)
 	}
 
-	fmt.Printf("Deleted %v documents in the trainers collection\n", deleteResult.DeletedCount)
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 
 }
@@ -561,5 +562,25 @@ func GetUserHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		break
 	}
+
+}
+
+func DeleteQuestionBankHandler(w http.ResponseWriter, r *http.Request) {
+	dt := time.Now().Format("01-02-2006 15:04:05")
+	fmt.Print("\n", r.RequestURI+" "+r.Method+" "+dt, " ==> ")
+
+	id := r.FormValue("id")
+
+	filter := bson.D{{Key: "question_bank_id", Value: id}}
+
+	_, err := questionBankCollection.DeleteMany(context.TODO(), filter)
+	if err != nil {
+		log.Fatal(err)
+		fmt.Print("No QuestionBank found: ", id+"\n")
+		http.Error(w, "not found", http.StatusBadRequest)
+	}
+
+	fmt.Print("QuestionBank deleted: " + id)
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 
 }
